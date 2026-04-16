@@ -1,4 +1,4 @@
--- Arhip Hub 16 April Update| Multi-Feature Script
+-- Arhip Hub | Multi-Feature Script
 -- UI Library (custom)
 
 local Players = game:GetService("Players")
@@ -14,7 +14,7 @@ local Camera = workspace.CurrentCamera
 -- ══════════════════════════════════════
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ArhipHub 16 April Update"
+ScreenGui.Name = "ArhipHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
@@ -54,7 +54,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 16, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "⚡ Arhip Hub 16 April UPDATE!"
+TitleLabel.Text = "⚡ Arhip Hub New Blink!"
 TitleLabel.TextColor3 = Color3.fromRGB(200, 160, 255)
 TitleLabel.TextSize = 18
 TitleLabel.Font = Enum.Font.GothamBold
@@ -356,69 +356,304 @@ end
 --           FEATURES
 -- ══════════════════════════════════════
 
--- ─── 1. BLINK (Q) ───
+-- ─── 1. BLINK ───
 local blinkEnabled = false
+local blinkV1Enabled = false
 local blinkKey = Enum.KeyCode.Q
 local blinkDistance = 40
 local blinkCooldown = false
 
-MakeToggle("⚡ Blink [Q]", function(state)
-    blinkEnabled = state
-end)
-MakeSlider("Blink Distance", 10, 150, 40, function(val)
-    blinkDistance = val
+MakeSection("MOVEMENT")
+
+-- ══ Keybinder helper ══
+local function makeKeyBinder(labelText, currentKey, onChanged)
+    local isBinding = false
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(0, 390, 0, 44)
+    Row.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
+    Row.BorderSizePixel = 0
+    Row.Parent = ContentFrame
+    local RowCorner = Instance.new("UICorner")
+    RowCorner.CornerRadius = UDim.new(0, 10)
+    RowCorner.Parent = Row
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -130, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = labelText
+    Label.TextColor3 = Color3.fromRGB(220, 220, 240)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local KeyBtn = Instance.new("TextButton")
+    KeyBtn.Size = UDim2.new(0, 100, 0, 28)
+    KeyBtn.Position = UDim2.new(1, -112, 0.5, -14)
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+    KeyBtn.Text = currentKey.Name
+    KeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyBtn.TextSize = 12
+    KeyBtn.Font = Enum.Font.GothamBold
+    KeyBtn.BorderSizePixel = 0
+    KeyBtn.Parent = Row
+    local KeyBtnCorner = Instance.new("UICorner")
+    KeyBtnCorner.CornerRadius = UDim.new(0, 8)
+    KeyBtnCorner.Parent = KeyBtn
+
+    KeyBtn.MouseButton1Click:Connect(function()
+        if isBinding then return end
+        isBinding = true
+        KeyBtn.Text = "[ ... ]"
+        KeyBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 60)
+        local conn
+        conn = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                conn:Disconnect()
+                currentKey = input.KeyCode
+                KeyBtn.Text = input.KeyCode.Name
+                KeyBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+                isBinding = false
+                onChanged(input.KeyCode)
+            end
+        end)
+    end)
+end
+
+-- ══════════════════════════════
+--   BLINK V1 — Классический
+-- ══════════════════════════════
+local blinkV1Key = Enum.KeyCode.Q
+
+makeKeyBinder("🔑 Blink V1 Bind", blinkV1Key, function(key)
+    blinkV1Key = key
 end)
 
+MakeToggle("⚡ Blink V1 (Классика)", function(state)
+    blinkV1Enabled = state
+end)
+
+MakeSlider("V1 Дистанция", 10, 150, 40, function(val)
+    if not blinkEnabled then
+        blinkDistance = val
+    end
+end)
+
+-- ══════════════════════════════
+--   BLINK V2 — Anti-Mage Style
+-- ══════════════════════════════
+local blinkV2Enabled = false
+local blinkV2Key = Enum.KeyCode.F
+local blinkV2Distance = 50
+local blinkV2Cooldown = false
+
+makeKeyBinder("🔑 Blink V2 Bind", blinkV2Key, function(key)
+    blinkV2Key = key
+end)
+
+MakeToggle("💜 Blink V2 (Anti-Mage)", function(state)
+    blinkV2Enabled = state
+end)
+
+MakeSlider("V2 Дистанция", 10, 200, 50, function(val)
+    blinkV2Distance = val
+end)
+
+-- ══════════════════════════════
+--   INPUT HANDLER
+-- ══════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if not blinkEnabled then return end
-    if input.KeyCode ~= blinkKey then return end
-    if blinkCooldown then return end
 
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
+    -- ── V1 Blink ──
+    if input.KeyCode == blinkV1Key and blinkV1Enabled and not blinkCooldown then
+        blinkCooldown = true
+        local char = LocalPlayer.Character
+        if not char then blinkCooldown = false return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then blinkCooldown = false return end
 
-    blinkCooldown = true
+        local lookVec = hrp.CFrame.LookVector
 
-    -- Ghost trail
-    local lookVec = hrp.CFrame.LookVector
-    for i = 1, 5 do
-        local ghost = Instance.new("Part")
-        ghost.Size = hrp.Size
-        ghost.CFrame = hrp.CFrame + lookVec * (blinkDistance * (i / 5))
-        ghost.Anchored = true
-        ghost.CanCollide = false
-        ghost.CastShadow = false
-        ghost.Material = Enum.Material.Neon
-        ghost.Color = Color3.fromRGB(160, 100, 255)
-        ghost.Transparency = 0.4 + (i * 0.1)
-        ghost.Parent = workspace
-        game:GetService("Debris"):AddItem(ghost, 0.25)
+        -- Ghost trail по пути
+        for i = 1, 6 do
+            local ghost = Instance.new("Part")
+            ghost.Size = Vector3.new(2, 2, 1)
+            ghost.CFrame = hrp.CFrame + lookVec * (blinkDistance * (i / 6))
+            ghost.Anchored = true
+            ghost.CanCollide = false
+            ghost.CastShadow = false
+            ghost.Material = Enum.Material.Neon
+            ghost.Color = Color3.fromRGB(160, 100, 255)
+            ghost.Transparency = 0.3 + (i * 0.1)
+            ghost.Parent = workspace
+            TweenService:Create(ghost, TweenInfo.new(0.3), {
+                Transparency = 1
+            }):Play()
+            game:GetService("Debris"):AddItem(ghost, 0.35)
+        end
+
+        hrp.CFrame = hrp.CFrame + lookVec * blinkDistance
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+
+        -- Flash
+        local flash = Instance.new("Frame")
+        flash.Size = UDim2.new(1, 0, 1, 0)
+        flash.BackgroundColor3 = Color3.fromRGB(160, 100, 255)
+        flash.BackgroundTransparency = 0.4
+        flash.BorderSizePixel = 0
+        flash.ZIndex = 100
+        flash.Parent = ScreenGui
+        TweenService:Create(flash, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+        game:GetService("Debris"):AddItem(flash, 0.25)
+
+        task.wait(0.4)
+        blinkCooldown = false
     end
 
-    -- Телепорт без заморозки
-    local targetCFrame = hrp.CFrame + lookVec * blinkDistance
-    hrp.CFrame = targetCFrame
-    hum:ChangeState(Enum.HumanoidStateType.Running)
+    -- ── V2 Blink (Anti-Mage) ──
+    if input.KeyCode == blinkV2Key and blinkV2Enabled and not blinkV2Cooldown then
+        blinkV2Cooldown = true
+        local char = LocalPlayer.Character
+        if not char then blinkV2Cooldown = false return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then blinkV2Cooldown = false return end
 
-    -- Flash эффект
-    local flash = Instance.new("Frame")
-    flash.Size = UDim2.new(1, 0, 1, 0)
-    flash.BackgroundColor3 = Color3.fromRGB(160, 100, 255)
-    flash.BackgroundTransparency = 0.5
-    flash.BorderSizePixel = 0
-    flash.ZIndex = 100
-    flash.Parent = ScreenGui
-    TweenService:Create(flash, TweenInfo.new(0.2), {
-        BackgroundTransparency = 1
-    }):Play()
-    game:GetService("Debris"):AddItem(flash, 0.25)
+        local lookVec = hrp.CFrame.LookVector
+        local startCFrame = hrp.CFrame
+        local targetCFrame = hrp.CFrame + lookVec * blinkV2Distance
 
-    task.wait(0.4)
-    blinkCooldown = false
+        -- Фаза 1: тёмная вспышка (исчезновение)
+        local darkFlash = Instance.new("Frame")
+        darkFlash.Size = UDim2.new(1, 0, 1, 0)
+        darkFlash.BackgroundColor3 = Color3.fromRGB(20, 0, 40)
+        darkFlash.BackgroundTransparency = 0.2
+        darkFlash.BorderSizePixel = 0
+        darkFlash.ZIndex = 100
+        darkFlash.Parent = ScreenGui
+
+        -- Частицы исчезновения (тёмно-фиолетовые)
+        for i = 1, 12 do
+            local particle = Instance.new("Part")
+            particle.Size = Vector3.new(
+                math.random(1, 3) * 0.3,
+                math.random(1, 3) * 0.3,
+                math.random(1, 3) * 0.3
+            )
+            particle.CFrame = startCFrame * CFrame.new(
+                math.random(-3, 3),
+                math.random(-2, 2),
+                math.random(-3, 3)
+            )
+            particle.Anchored = true
+            particle.CanCollide = false
+            particle.Material = Enum.Material.Neon
+            particle.Color = Color3.fromRGB(
+                math.random(60, 120),
+                0,
+                math.random(150, 255)
+            )
+            particle.Transparency = 0
+            particle.Parent = workspace
+            TweenService:Create(particle, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
+                Transparency = 1,
+                Size = Vector3.new(0.05, 0.05, 0.05)
+            }):Play()
+            game:GetService("Debris"):AddItem(particle, 0.45)
+        end
+
+        -- Скрываем персонажа на мгновение
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.LocalTransparencyModifier = 1
+            end
+        end
+
+        task.wait(0.08)
+
+        -- Телепорт
+        hrp.CFrame = targetCFrame
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+
+        -- Появляем персонажа
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.LocalTransparencyModifier = 0
+            end
+        end
+
+        -- Тёмная вспышка исчезает
+        TweenService:Create(darkFlash, TweenInfo.new(0.15), {
+            BackgroundTransparency = 1
+        }):Play()
+        game:GetService("Debris"):AddItem(darkFlash, 0.2)
+
+        -- Фаза 2: появление — яркая вспышка на месте прибытия
+        local arriveFlash = Instance.new("Frame")
+        arriveFlash.Size = UDim2.new(1, 0, 1, 0)
+        arriveFlash.BackgroundColor3 = Color3.fromRGB(120, 0, 220)
+        arriveFlash.BackgroundTransparency = 0.1
+        arriveFlash.BorderSizePixel = 0
+        arriveFlash.ZIndex = 100
+        arriveFlash.Parent = ScreenGui
+        TweenService:Create(arriveFlash, TweenInfo.new(0.25), {
+            BackgroundTransparency = 1
+        }):Play()
+        game:GetService("Debris"):AddItem(arriveFlash, 0.3)
+
+        -- Частицы появления
+        for i = 1, 16 do
+            local particle = Instance.new("Part")
+            particle.Size = Vector3.new(0.1, 0.1, 0.1)
+            particle.CFrame = targetCFrame * CFrame.new(
+                math.random(-4, 4),
+                math.random(-3, 3),
+                math.random(-4, 4)
+            )
+            particle.Anchored = true
+            particle.CanCollide = false
+            particle.Material = Enum.Material.Neon
+            particle.Color = Color3.fromRGB(
+                math.random(150, 220),
+                math.random(0, 60),
+                255
+            )
+            particle.Transparency = 0
+            particle.Parent = workspace
+            TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Transparency = 1,
+                Size = Vector3.new(
+                    math.random(2, 5) * 0.4,
+                    math.random(2, 5) * 0.4,
+                    math.random(2, 5) * 0.4
+                )
+            }):Play()
+            game:GetService("Debris"):AddItem(particle, 0.55)
+        end
+
+        -- Кольцо на земле
+        local ring = Instance.new("Part")
+        ring.Size = Vector3.new(8, 0.1, 8)
+        ring.CFrame = CFrame.new(targetCFrame.Position - Vector3.new(0, 2.8, 0))
+        ring.Anchored = true
+        ring.CanCollide = false
+        ring.Material = Enum.Material.Neon
+        ring.Color = Color3.fromRGB(120, 0, 220)
+        ring.Transparency = 0.2
+        ring.Shape = Enum.PartType.Cylinder
+        ring.Parent = workspace
+        TweenService:Create(ring, TweenInfo.new(0.4), {
+            Transparency = 1,
+            Size = Vector3.new(0.1, 0.1, 0.1)
+        }):Play()
+        game:GetService("Debris"):AddItem(ring, 0.45)
+
+        task.wait(0.5)
+        blinkV2Cooldown = false
+    end
 end)
 
 -- ─── 2. GHOST RUN (anti-anticheat speed) ───
