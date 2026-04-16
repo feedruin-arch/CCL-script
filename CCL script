@@ -1036,6 +1036,72 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- ─── SAFE-SPAWN V2 (ADVANCED) ───
+MakeSection("PROTECTION")
+
+local safeZoneCFrame = nil
+local safeSpawnEnabled = false
+local healthThreshold = 20 -- Процент здоровья по умолчанию
+local hasTeleported = false -- Предохранитель для одного телепорта
+
+MakeButton("📍 Сохранить Safe-Zone", function()
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        safeZoneCFrame = hrp.CFrame
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "⚡ Arhip Hub",
+            Text = "Точка спасения установлена!",
+            Duration = 3
+        })
+    end
+end)
+
+MakeToggle("🛡️ Включить защиту", function(state)
+    safeSpawnEnabled = state
+    hasTeleported = false -- Сбрасываем при включении/выключении
+end)
+
+-- Ползунок для выбора % здоровья
+MakeSlider("Порог здоровья (%)", 5, 90, 20, function(val)
+    healthThreshold = val
+end)
+
+-- Умная логика проверки здоровья
+local function monitorHealth(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if not hum then return end
+    
+    hum.HealthChanged:Connect(function(currentHealth)
+        if not safeSpawnEnabled or not safeZoneCFrame then return end
+        
+        local thresholdValue = (hum.MaxHealth * (healthThreshold / 100))
+        
+        -- Если здоровье упало ниже порога и мы еще не телепортировались
+        if currentHealth <= thresholdValue and not hasTeleported then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = safeZoneCFrame
+                hasTeleported = true -- Блокируем повторный телепорт
+                
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "🛡️ Защита!",
+                    Text = "Вы были эвакуированы в безопасную зону.",
+                    Duration = 3
+                })
+            end
+        end
+        
+        -- Сбрасываем предохранитель, если здоровье восстановилось (хилка или реген)
+        -- Это позволит защите сработать снова в следующем бою
+        if currentHealth > thresholdValue + 5 then
+            hasTeleported = false
+        end
+    end)
+end
+
+if LocalPlayer.Character then monitorHealth(LocalPlayer.Character) end
+LocalPlayer.CharacterAdded:Connect(monitorHealth)
+
 -- ══════════════════════════════════════
 --        ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ
 -- ══════════════════════════════════════
