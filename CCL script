@@ -1,4 +1,4 @@
--- Arhip Hub | Multi-Feature Script
+-- Arhip Hub 16 April Update| Multi-Feature Script
 -- UI Library (custom)
 
 local Players = game:GetService("Players")
@@ -14,7 +14,7 @@ local Camera = workspace.CurrentCamera
 -- ══════════════════════════════════════
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ArhipHub"
+ScreenGui.Name = "ArhipHub 16 April Update"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
@@ -54,7 +54,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -60, 1, 0)
 TitleLabel.Position = UDim2.new(0, 16, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "⚡ Arhip Hub"
+TitleLabel.Text = "⚡ Arhip Hub 16 April UPDATE!"
 TitleLabel.TextColor3 = Color3.fromRGB(200, 160, 255)
 TitleLabel.TextSize = 18
 TitleLabel.Font = Enum.Font.GothamBold
@@ -799,6 +799,367 @@ RunService.Stepped:Connect(function()
             end
         end
     end
+end)
+
+-- ══════════════════════════════════════
+--        ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ
+-- ══════════════════════════════════════
+
+-- ─── HITBOX EXPANDER ───
+MakeSection("COMBAT")
+
+MakeButton("📦 Hitbox Expander ON/OFF", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/LisSploit/HitBoxExtender/main/Universal", true))()
+end)
+
+-- ─── ANTI FLING ───
+MakeButton("🛡 Anti Fling ON/OFF", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/protezzx/Player-joined-left/refs/heads/main/Antifling%20script", true))()
+end)
+
+-- ─── AIMBOT ───
+local aimbotSmoothEnabled = false
+local aimbotSnapEnabled = false
+local aimbotSmoothFactor = 0.15
+local aimbotSmoothKey = Enum.KeyCode.E
+local aimbotSnapKey = Enum.KeyCode.R
+local aimbotSmoothConn = nil
+local aimbotSnapConn = nil
+
+local function getClosestPlayer()
+    local localChar = LocalPlayer.Character
+    if not localChar then return nil end
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    if not localHRP then return nil end
+
+    local closest = nil
+    local minDist = math.huge
+    local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p == LocalPlayer then continue end
+        local char = p.Character
+        if not char then continue end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum or hum.Health <= 0 then continue end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, 1.5, 0))
+        if onScreen then
+            local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+            if dist < minDist then
+                minDist = dist
+                closest = hrp
+            end
+        end
+    end
+    return closest
+end
+
+local function makeKeyBinder(labelText, currentKey, onChanged)
+    local isBinding = false
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(0, 390, 0, 44)
+    Row.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
+    Row.BorderSizePixel = 0
+    Row.Parent = ContentFrame
+    local RowCorner = Instance.new("UICorner")
+    RowCorner.CornerRadius = UDim.new(0, 10)
+    RowCorner.Parent = Row
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -130, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = labelText
+    Label.TextColor3 = Color3.fromRGB(220, 220, 240)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local KeyBtn = Instance.new("TextButton")
+    KeyBtn.Size = UDim2.new(0, 100, 0, 28)
+    KeyBtn.Position = UDim2.new(1, -112, 0.5, -14)
+    KeyBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+    KeyBtn.Text = currentKey.Name
+    KeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyBtn.TextSize = 12
+    KeyBtn.Font = Enum.Font.GothamBold
+    KeyBtn.BorderSizePixel = 0
+    KeyBtn.Parent = Row
+    local KeyBtnCorner = Instance.new("UICorner")
+    KeyBtnCorner.CornerRadius = UDim.new(0, 8)
+    KeyBtnCorner.Parent = KeyBtn
+
+    KeyBtn.MouseButton1Click:Connect(function()
+        if isBinding then return end
+        isBinding = true
+        KeyBtn.Text = "[ ... ]"
+        KeyBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 60)
+        local conn
+        conn = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                conn:Disconnect()
+                currentKey = input.KeyCode
+                KeyBtn.Text = input.KeyCode.Name
+                KeyBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 160)
+                isBinding = false
+                onChanged(input.KeyCode)
+            end
+        end)
+    end)
+end
+
+
+
+-- Snap Aimbot
+makeKeyBinder("⚡ Snap Key (держи)", aimbotSnapKey, function(key)
+    aimbotSnapKey = key
+end)
+
+MakeToggle("⚡ Aimbot Snap", function(state)
+    aimbotSnapEnabled = state
+    if aimbotSnapConn then
+        aimbotSnapConn:Disconnect()
+        aimbotSnapConn = nil
+    end
+    if state then
+        aimbotSnapConn = RunService.RenderStepped:Connect(function()
+            if not aimbotSnapEnabled then return end
+            if not UserInputService:IsKeyDown(aimbotSnapKey) then return end
+            local target = getClosestPlayer()
+            if not target then return end
+            local targetPos = target.Position + Vector3.new(0, 1.5, 0)
+            local camPos = Camera.CFrame.Position
+            Camera.CFrame = CFrame.new(camPos, targetPos)
+        end)
+    end
+end)
+
+
+-- ─── FAKE LAG ───
+-- ─── ADVANCED FAKE LAG ───
+MakeSection("NETWORK")
+
+local fakeLagEnabled = false
+local lagPower = 15 -- Чем больше, тем сильнее лаг
+
+-- Функция для работы фейк-лага
+task.spawn(function()
+    while true do
+        if fakeLagEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            
+            -- Мы замораживаем персонажа для сервера на короткое время
+            hrp.Anchored = true
+            task.wait(lagPower / 100) -- Время "зависания"
+            
+            -- Размораживаем, чтобы позиция обновилась (телепорт для других)
+            hrp.Anchored = false
+        end
+        task.wait(0.01) -- Минимальная пауза для стабильности
+    end
+end)
+
+MakeToggle("📡 Fake Lag", function(state)
+    fakeLagEnabled = state
+    if not state and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Anchored = false
+    end
+end)
+
+MakeSlider("Lag Power", 1, 30, 15, function(val)
+    lagPower = val
+end)
+
+
+-- ─── AUTO CLICKER ───
+-- ─── AUTO CLICKER (FIXED + BIND) ───
+MakeSection("AUTOMATION")
+
+local autoClickEnabled = false
+local autoClickCPS = 10
+local autoClickKey = Enum.KeyCode.V -- Клавиша по умолчанию
+
+-- Функция проверки: находится ли мышь над основным фреймом чита
+local function isMouseOverUI()
+    local mPos = UserInputService:GetMouseLocation()
+    local guiPos = MainFrame.AbsolutePosition
+    local guiSize = MainFrame.AbsoluteSize
+    
+    return (mPos.X >= guiPos.X and mPos.X <= guiPos.X + guiSize.X) and
+           (mPos.Y >= guiPos.Y and mPos.Y <= guiPos.Y + guiSize.Y)
+end
+
+MakeToggle("🖱 Auto Clicker", function(state)
+    autoClickEnabled = state
+    if state then
+        task.spawn(function()
+            while autoClickEnabled do
+                -- Кликаем только если мышь НЕ над интерфейсом
+                if not isMouseOverUI() then
+                    local char = LocalPlayer.Character
+                    if char then
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                        end
+                    end
+                    
+                    if mouse1click then
+                        pcall(mouse1click)
+                    end
+                end
+                task.wait(1 / autoClickCPS)
+            end
+        end)
+    end
+end)
+
+MakeSlider("CPS (clicks/sec)", 1, 50, 10, function(val)
+    autoClickCPS = val
+end)
+
+-- Добавляем кнопку бинда (используем твой хелпер makeKeyBinder)
+makeKeyBinder("⌨️ Кнопка кликера", autoClickKey, function(key)
+    autoClickKey = key
+end)
+
+-- Логика активации по бинду
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == autoClickKey then
+        -- Мы не вызываем callback напрямую, а просто меняем состояние, 
+        -- имитируя нажатие кнопки в меню для синхронизации интерфейса.
+        -- Но так как в твоей библиотеке MakeToggle возвращает только состояние, 
+        -- проще добавить отдельную переменную или доработать логику активации.
+        autoClickEnabled = not autoClickEnabled
+        print("AutoClicker: " .. tostring(autoClickEnabled))
+        -- Внимание: для визуального обновления галочки в меню нужен доступ к кнопке Toggle, 
+        -- но этот код просто переключает саму функцию.
+    end
+end)
+
+
+-- ─── FPS BOOST ───
+MakeSection("PERFORMANCE")
+
+local fpsBoostEnabled = false
+
+MakeToggle("🚀 FPS Boost", function(state)
+    fpsBoostEnabled = state
+    if state then
+        -- Убираем тяжёлые эффекты
+        local Lighting = game:GetService("Lighting")
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA("BlurEffect") or obj:IsA("DepthOfFieldEffect")
+            or obj:IsA("SunRaysEffect") or obj:IsA("ColorCorrectionEffect")
+            or obj:IsA("BloomEffect") then
+                obj.Enabled = false
+            end
+        end
+
+        -- Снижаем качество текстур
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.CastShadow = false
+            end
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail")
+            or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+                obj.Enabled = false
+            end
+        end
+    else
+        local Lighting = game:GetService("Lighting")
+        Lighting.GlobalShadows = true
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA("BlurEffect") or obj:IsA("DepthOfFieldEffect")
+            or obj:IsA("SunRaysEffect") or obj:IsA("ColorCorrectionEffect")
+            or obj:IsA("BloomEffect") then
+                obj.Enabled = true
+            end
+        end
+    end
+end)
+
+-- ─── СМЕНА НЕБА ───
+MakeSection("VISUALS")
+
+local skyNames = {
+    "🌌 Космос",
+    
+   
+  
+    "🔵 Неон"
+}
+
+local skyData = {
+    -- Космос
+    {
+        SkyboxBk = "rbxassetid://159454286",
+        SkyboxDn = "rbxassetid://159454286",
+        SkyboxFt = "rbxassetid://159454286",
+        SkyboxLf = "rbxassetid://159454286",
+        SkyboxRt = "rbxassetid://159454286",
+        SkyboxUp = "rbxassetid://159454286",
+        Ambient = Color3.fromRGB(0, 0, 30),
+        Brightness = 0.5,
+    },
+   
+    -- Неон
+    {
+        SkyboxBk = "rbxassetid://159454286",
+        SkyboxDn = "rbxassetid://159454286",
+        SkyboxFt = "rbxassetid://159454286",
+        SkyboxLf = "rbxassetid://159454286",
+        SkyboxRt = "rbxassetid://159454286",
+        SkyboxUp = "rbxassetid://159454286",
+        Ambient = Color3.fromRGB(80, 0, 120),
+        Brightness = 1,
+    },
+}
+
+local function applySky(index)
+    local Lighting = game:GetService("Lighting")
+    local data = skyData[index]
+
+    local sky = Lighting:FindFirstChildOfClass("Sky")
+    if not sky then
+        sky = Instance.new("Sky")
+        sky.Parent = Lighting
+    end
+
+    sky.SkyboxBk = data.SkyboxBk
+    sky.SkyboxDn = data.SkyboxDn
+    sky.SkyboxFt = data.SkyboxFt
+    sky.SkyboxLf = data.SkyboxLf
+    sky.SkyboxRt = data.SkyboxRt
+    sky.SkyboxUp = data.SkyboxUp
+    Lighting.Ambient = data.Ambient
+    Lighting.Brightness = data.Brightness
+end
+
+-- Sky Buttons
+for i, name in ipairs(skyNames) do
+    MakeButton(name, function()
+        applySky(i)
+    end)
+end
+
+MakeButton("❌ Убрать небо", function()
+    local Lighting = game:GetService("Lighting")
+    local sky = Lighting:FindFirstChildOfClass("Sky")
+    if sky then sky:Destroy() end
+    Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+    Lighting.Brightness = 2
 end)
 
 -- ══════════════════════════════════════
